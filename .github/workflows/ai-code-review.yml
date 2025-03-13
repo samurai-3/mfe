@@ -18,7 +18,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull AI Code Review Action Image
-        run: docker pull ghcr.io/kxxt/auto-code-review-action:latest
+        run: docker pull ghcr.io/kxxt/auto-code-review-action:v1.0.0
 
       - name: Run AI Code Review
         run: docker run --rm -v "${{ github.workspace }}:/workspace" ghcr.io/kxxt/auto-code-review-action:latest
