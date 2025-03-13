@@ -1,0 +1,14 @@
+name: "MFE Action"
+description: "My micro frontend action for GitHub workflows"
+author: "samurai-3"
+inputs:
+  example_input:
+    description: "An example input"
+    required: true
+    default: "Hello World"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.example_input }}
