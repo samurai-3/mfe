@@ -1,24 +1,26 @@
-name: AI Code Reviewer
+name: AI Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
-
-permissions:
-  contents: read
-  pull-requests: write
+    branches:
+      - main
 
 jobs:
-  review:
+  code-review:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: AI Code Reviewer
-        uses: docker://ghcr.io/kxxt/auto-code-review-action:latest
-        with:
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-          exclude: "**/*.json, **/*.md"
-          
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull AI Code Review Action Image
+        run: docker pull ghcr.io/kxxt/auto-code-review-action:latest
+
+      - name: Run AI Code Review
+        run: docker run --rm -v "${{ github.workspace }}:/workspace" ghcr.io/kxxt/auto-code-review-action:latest
+
+      - name: Complete Job
+        run: echo "Code review completed successfully."
