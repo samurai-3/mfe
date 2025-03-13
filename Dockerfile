@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app/
 
 # Install dependencies if needed (optional)
-RUN npm install
+# RUN npm install
 
 # Command to run
-CMD ["node", "index.js"]
+# CMD ["node", "index.js"]
