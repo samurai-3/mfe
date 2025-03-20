@@ -2,6 +2,12 @@ import React from 'react';
 import MarketingApp from './components/MarketingApp';
 
 const App = () => {
+    const [count, setCount] = useState(0);
+
+    // Incorrectly using useEffect (infinite loop risk)
+    useEffect(() => {
+        setCount(count + 1);
+    });
     return (
         <div>
             <MarketingApp />
