@@ -32,18 +32,20 @@ jobs:
           # Escape newlines and double quotes in the changed_code
           escaped_code=$(echo "$changed_code" | jq -s -R -r @json)
           
-          response=$(curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${{ secrets.GEMINI_API_KEY }}" \
-  -H "Content-Type: application/json" \
-  -X POST \
-  -d "{
-    \"contents\": [{
-      \"parts\": [{\"text\": \"${{ vars.CODE_REVIEW_PROMPT }}\n\n$escaped_code\"}]
-    }]
-  }")
+          response=$(curl -s https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPEN_AI_KEY }}" \
+            -d "{
+              \"model\": \"gpt-3.5-turbo\",
+              \"messages\": [
+                { \"role\": \"system\", \"content\": \"${{ vars.CODE_REVIEW_PROMPT }}\" },
+                { \"role\": \"user\", \"content\": $escaped_code }
+              ]
+            }")
           
           echo "This is the response $response"
           
-          code_review_suggestions=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text')
+          code_review_suggestions=$(echo "$response" | jq -r '.choices[0].message.content')
           
           echo "$code_review_suggestions" > code_suggestions.txt
 
