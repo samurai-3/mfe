@@ -32,15 +32,12 @@ jobs:
           # Escape newlines and double quotes in the changed_code
           escaped_code=$(echo "$changed_code" | jq -s -R -r @json)
 
-          response=$(curl -s -X POST "https://openrouter.ai/api/v1/chat/completions" \
+          response=$(curl -s -X POST "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1" \
+            -H "Authorization: Bearer ${{ secrets.HF_KEY }}" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.OPENROUTER_API_KEY }}" \
             -d "{
-              \"model\": \"openai/gpt-4o\",
-              \"messages\": [
-                { \"role\": \"system\", \"content\": \"${{ vars.CODE_REVIEW_PROMPT }}\" },
-                { \"role\": \"user\", \"content\": $escaped_code }
-              ]
+              \"inputs\": \"${{ vars.CODE_REVIEW_PROMPT }}\n\n$escaped_code\",
+              \"parameters\": {\"max_length\": 500}
             }")
 
           echo "This is the response $response"
