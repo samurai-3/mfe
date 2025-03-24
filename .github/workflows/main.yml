@@ -32,13 +32,14 @@ jobs:
           # Escape newlines and double quotes in the changed_code
           escaped_code=$(echo "$changed_code" | jq -s -R -r @json)
 
-          response=$(curl -s -X POST "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1" \
-            -H "Authorization: Bearer ${{ secrets.HF_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"inputs\": \"${{ vars.CODE_REVIEW_PROMPT }}\n\n$escaped_code\",
-              \"parameters\": {\"max_length\": 500}
-            }")
+          response=$(curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=GEMINI_API_KEY" \
+-H 'Content-Type: application/json' \
+-X POST \
+-d '{
+  "contents": [{
+    "parts":[{"text": "${{ vars.CODE_REVIEW_PROMPT }}\n\n$escaped_code\"}]
+    }]
+   }')
 
           echo "This is the response $response"
 
