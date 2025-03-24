@@ -2,6 +2,7 @@ name: GPT Code Review
 
 on:
   pull_request:
+
 permissions:
   contents: read
   issues: write
@@ -15,48 +16,55 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: GrantBirki/git-diff-action@v2.4.0  # A github action for gathering the git diff of our pull request
+      - uses: GrantBirki/git-diff-action@v2.4.0
         id: git-diff
         with:
           raw_diff_file_output: diff.txt
-          file_output_only: "true" #Makes us exclude printing the diff on the console for security purposes
+          file_output_only: "true"
 
-      - name: Perfom Code Review With gpt-4
+      - name: Perform Code Review With Gemini
         id: code_review_suggestions
         run: |
-          # Get the code changes
-          changed_code=$(cat ${{steps.git-diff.outputs.raw-diff-path}})
-          
-          echo "PR Changes $changed_code"
-          
-          # Escape newlines and double quotes in the changed_code
-          escaped_code=$(echo "$changed_code" | jq -s -R -r @json)
-          
-          response=$(curl -s https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${{ secrets.GEMINI_API_KEY }}" \
+          # Read the git diff output
+          changed_code=$(cat "${{ steps.git-diff.outputs.raw-diff-path }}")
+
+          echo "PR Changes: $changed_code"
+
+          # 🔵 Properly escape changed_code for JSON
+          escaped_code=$(echo "$changed_code" | jq -Rs .)
+
+          # 🟢 Construct JSON payload safely
+          json_payload=$(jq -n --arg prompt "${{ vars.CODE_REVIEW_PROMPT }}" --arg code "$escaped_code" '{
+            contents: [{
+              parts: [{ text: "\($prompt)\n\n\($code)" }]
+            }]
+          }')
+
+          # Send request to Gemini API
+          response=$(curl -s -X POST \
             -H "Content-Type: application/json" \
-            -X POST \
-            -d '{
-              "contents": [{
-              "parts":[{"text": \"${{ vars.CODE_REVIEW_PROMPT }}. $escaped_code\" }]
-              }]
-            }')
-          
-          echo "This is the response $response"
-          
+            -d "$json_payload" \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${{ secrets.GEMINI_API_KEY }}")
+
+          echo "Gemini Response: $response"
+
+          # Extract generated text
           code_review_suggestions=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text')
-          
+
           echo "$code_review_suggestions" > code_suggestions.txt
 
       - name: Add Code Suggestions Comment
         run: |
           cat code_suggestions.txt
-          
-          escaped_comments=$(echo "$(cat code_suggestions.txt)" | jq -s -R -r @json)
-          
+
+          # 🔵 Escape suggestions for JSON safely
+          escaped_comments=$(jq -Rs . < code_suggestions.txt)
+
+          # 🟡 Fix JSON formatting in curl request
           curl -s -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.number }}/comments \
-            -d "{\"body\":$escaped_comments\"}"
+            -d "{\"body\": $escaped_comments}"
